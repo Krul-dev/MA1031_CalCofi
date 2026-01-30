@@ -4,3 +4,9 @@
 renv/library/
 renv/staging/
 output/
+AGENTS.md
+calcifer_abilities.md
+
+/.quarto/
+
+**/*.quarto_ipynb

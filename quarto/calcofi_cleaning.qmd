@@ -1,0 +1,25 @@
+# Limpieza de la base de datos de CalCofi
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+
+bottle_tbl <- read_csv(
+  here("data","Bottle.csv"),
+  locale = locale(encoding = "Windows-1252"),
+  col_types = cols(
+    DIC2 = col_character(),
+    TA2  = col_character(),
+    pH1  = col_character(),
+    pH2  = col_character(),
+    `DIC Quality Comment` = col_character(),
+    .default = col_guess()
+  ),
+  show_col_types = FALSE,
+  progress = FALSE
+) |>
+  clean_names(replace = c("\u00b5" = "u"))
+
+bottle_tbl
+```
