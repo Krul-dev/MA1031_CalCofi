@@ -88,6 +88,21 @@ calcofi_1993 <- calcofi_full %>%
 range(calcofi_1993$Year, na.rm = TRUE)
 calcofi_1993
 ```
+```{r}
+calcofi_1993 |>
+  summarize(mean(is.na(NO3uM)) * 100)
+```
+
+```{r}
+calcofi_1993 |>
+  slice(200000:n()) |>
+  select(NO2q) 
+```
+```{r}
+calcofi_1993 |>
+  names() 
+```
+
 
 ```{r, echo=FALSE}
 missing_summary_1949_1992 <- data.frame(
