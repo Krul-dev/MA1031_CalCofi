@@ -1,0 +1,235 @@
+---
+title: "MA1031-CalCOFI"
+author: "Itzel Méndez"
+date: "2026-01-23"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+# Lectura de las bases de datos
+
+
+```{r, echo=FALSE}
+bottle <- read.csv('194903-202105_Bottle.csv', fileEncoding = "latin1")
+bottle$Btl_Cnt <- as.factor(bottle$Btl_Cnt)
+bottle$Cst_Cnt <- as.factor(bottle$Cst_Cnt)
+bottle
+```
+
+```{r, echo=FALSE}
+cast <- read.csv('194903-202105_Cast.csv', fileEncoding = "latin1")
+cast$Cst_Cnt <- as.factor(cast$Cst_Cnt)
+cast
+```
+
+
+```{r, echo=FALSE}
+unique(cast[['Year']])
+```
+
+```{r, echo=FALSE}
+table(cast[['Year']])
+```
+
+Se realiza la unión de las bases de datos mediante la columna "Cst_Cnt". Se realiza un left_join pues tenemos una relación uno a muchos.
+
+```{r, echo=FALSE}
+calcofi_full <- bottle %>%
+  left_join(cast, by = "Cst_Cnt")
+```
+
+```{r, echo=FALSE}
+calcofi_full
+range(calcofi_full$Year, na.rm = TRUE)
+```
+
+# ============================================================
+# 2. Porcentaje de celdas vacías por variable (orden descendente)
+# ============================================================
+
+```{r, echo=FALSE}
+missing_summary <- data.frame(
+  variable = names(calcofi_full),
+  pct_missing = round(
+    sapply(calcofi_full, function(x) mean(is.na(x)) * 100),
+    2
+  )
+)
+
+missing_summary <- missing_summary[order(-missing_summary$pct_missing), ]
+missing_summary
+```
+
+## Porcentaje de celdas vacías por variable por año.
+
+```{r, echo=FALSE}
+missing_summary_by_year <- calcofi_full %>%
+  group_by(Year) %>%
+  summarise(across(everything(),
+    ~ round(mean(is.na(.)) * 100,2)
+  ))
+
+missing_summary_by_year 
+```
+
+```{r, echo=FALSE}
+calcofi_1949_1992 <- calcofi_full %>%
+  filter(Year >= 1949 & Year <= 1992)
+
+calcofi_1993 <- calcofi_full %>%
+  filter(Year >= 1993 & Year <=2021)
+```
+
+```{r, echo=FALSE}
+range(calcofi_1993$Year, na.rm = TRUE)
+calcofi_1993
+```
+
+```{r, echo=FALSE}
+missing_summary_1949_1992 <- data.frame(
+  variable = names(calcofi_full),
+  pct_missing = round(
+    sapply(calcofi_1949_1992, function(x) mean(is.na(x)) * 100),
+    2
+  )
+)
+
+missing_summary_1949_1992 <- missing_summary_1949_1992[order(-missing_summary_1949_1992$pct_missing), ]
+missing_summary_1949_1992
+```
+
+```{r, echo=FALSE}
+missing_summary_1993 <- data.frame(
+  variable = names(calcofi_full),
+  pct_missing = round(
+    sapply(calcofi_1993, function(x) mean(is.na(x)) * 100),
+    2
+  )
+)
+
+missing_summary_1993 <- missing_summary_1993[order(-missing_summary_1993$pct_missing), ]
+missing_summary_1993
+```
+
+# ============================================================
+# 3. Subconjunto del dataframe original
+# ============================================================
+
+```{r, echo=FALSE}
+datos <- calcofi_1993[,
+                          c("Year","Cst_Cnt", "Btl_Cnt", "Depthm", 
+                            "T_degC","Salnty", "O2ml_L", 
+                            "O2Sat","NO3uM", "PO4uM", 
+                            "ChlorA", "R_Depth","STheta", 
+                            "Quarter", "Distance")]
+datos
+```
+
+```{r, echo=FALSE}
+datos <- datos[complete.cases(datos), ]
+range(datos$Year, na.rm = TRUE)
+```
+
+```{r, echo=FALSE}
+# ============================================================
+# 5. Crea variable categórica de zona de profundidad usando cuartiles
+# ============================================================
+quantile(datos$R_Depth)
+# Depth zones based on quartiles
+datos$Depth_zone <- cut(
+  datos$R_Depth,
+  breaks = c(0, 20, 61, 120, Inf),
+  labels = c(
+    "Very shallow",
+    "Shallow",
+    "Intermediate",
+    "Deep"
+  ),
+  include.lowest = TRUE
+)
+
+# Eliminar la variable  original usada para crear categorías
+datos$R_Depth <- NULL
+
+# ============================================================
+# 6. Crea variable categórica Water density class usando terciles
+# ============================================================
+
+datos$Water_density_class <- cut(
+  datos$STheta,
+  breaks = quantile(datos$STheta, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE),
+  labels = c("Light", "Intermediate", "Dense"),
+  include.lowest = TRUE
+)
+
+# Eliminar la variable  original usada para crear categorías
+datos$STheta  <- NULL
+```
+```{r, echo=FALSE}
+datos
+```
+
+```{r, echo=FALSE}
+vars_to_avg <- c( "T_degC","Salnty", "O2ml_L", 
+                            "O2Sat","NO3uM", "PO4uM", 
+                            "ChlorA")
+
+profile_cast_depth <- datos %>%
+  group_by(Cst_Cnt, Depth_zone) %>%
+  summarise(
+    across(
+      all_of(vars_to_avg),
+      ~ mean(.x, na.rm = TRUE),
+      .names = "mean_{.col}"
+    ),
+    Year = first(Year),
+    Quarter = first(Quarter),
+    Depth_zone = first(Depth_zone),
+    Water_density_class = first(Water_density_class),
+    .groups = "drop"
+  )
+```
+
+```{r, echo=FALSE}
+profile_cast_depth
+range(profile_cast_depth$Quarter, na.rm = TRUE)
+```
+# ============================================================
+# 7. Verificación final de formato del dataframe
+# ============================================================
+
+```{r, echo=FALSE}
+names(datos)
+
+datos$Depth_zone <- as.factor(datos$Depth_zone)
+datos$Water_density_class <- as.factor(datos$Water_density_class)
+
+table(datos$Depth_zone)
+table(datos$Water_density_class)
+
+summary(datos$T_degC)
+quantile(datos$T_degC)
+boxplot(datos$T_degC, horizontal = TRUE)
+hist(datos$T_degC)
+
+boxplot(T_degC ~ Depth_zone, data = datos, horizontal=TRUE)
+boxplot(T_degC ~ Water_density_class, data = datos, horizontal=TRUE)
+
+library(ggplot2)
+# Histogram by group in ggplot2
+ggplot(datos, aes(x = T_degC, fill = Water_density_class)) + 
+  geom_histogram(alpha = .5, position = "identity") 
+
+ggplot(datos, aes(x = Depthm, fill = Depth_zone)) + 
+  geom_histogram(alpha = .5, position = "identity") 
+
+quantile(datos$Depthm)
+boxplot(datos$Depthm, horizontal=TRUE)
+
+library(dplyr)
+datos <- datos %>% filter(Btl_Cnt != "890616")
+```
