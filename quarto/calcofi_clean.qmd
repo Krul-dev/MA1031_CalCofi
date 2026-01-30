@@ -7,11 +7,11 @@ library(tidyverse)
 library(here)
 library(janitor)
 
-bottle <- read.csv('Bottle.csv', fileEncoding = "latin1")
+bottle <- read.csv(here("data","Bottle.csv"), fileEncoding = "latin1")
 bottle$Btl_Cnt <- as.factor(bottle$Btl_Cnt)
 bottle$Cst_Cnt <- as.factor(bottle$Cst_Cnt)
 
-cast <- read.csv('Cast.csv', fileEncoding = "latin1")
+cast <- read.csv(here("data","Cast.csv"), fileEncoding = "latin1")
 cast$Cst_Cnt <- as.factor(cast$Cst_Cnt)
 
 calcofi_full <- bottle |>
@@ -44,13 +44,16 @@ large_na_percentage_names <- tibble(
 
 calcofi_simplified_tbl <- calcofi_1993 |>
   select(-large_na_percentage_names)
-
-calcofi_simplified_tbl |>
-  names()
 ```
 
 Eliminamos ahora las variables con información irrelevante para nuestros análisis
 
 ```{r}
-calcofi_simplified_tbl <- calcofi_simplified_tbl |>
+calcofi_simplified_tbl2 <- calcofi_simplified_tbl |>
+  select(-Cst_Cnt,-Btl_Cnt)
+
+calcofi_simplified_tbl2
+
+calcofi_simplified_tbl2 |>
+  select(Depth_ID)
 ```
