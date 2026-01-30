@@ -52,7 +52,8 @@ Eliminamos ahora las variables con información irrelevante para nuestros análi
 calcofi_simplified_tbl2 <- calcofi_simplified_tbl |>
   select(-Cst_Cnt,-Btl_Cnt)
 
-calcofi_simplified_tbl2
+calcofi_simplified_tbl2 |>
+  write_csv(here("data","calcofi_simplified.csv"))
 
 calcofi_simplified_tbl2 |>
   select(Depth_ID)
