@@ -50,11 +50,69 @@ Eliminamos ahora las variables con información irrelevante para nuestros análi
 
 ```{r}
 calcofi_simplified_tbl2 <- calcofi_simplified_tbl |>
-  select(-Cst_Cnt,-Btl_Cnt)
+  select(
+    -Btl_Cnt,
+    -Lon_Hem,
+    -Lon_Min,
+    -Lon_Deg,
+    -Lat_Hem,
+    -Lat_Min,
+    -Lat_Deg,
+    -Depth_ID,
+    -Sta_ID.x,
+    -Sta_ID.y,
+    -RecInd,
+    -T_prec,
+    -S_prec,
+    -NH3q,
+    -C14A1q,
+    -C14A2q,
+    -DarkAq,
+    -MeanAq,
+    -DIC.Quality.Comment,
+    -Cruise_ID,
+    -Cruise,
+    -IncTim,
+    -Cruz_Sta,
+    -DbSta_ID,
+    -Cast_ID,
+    -Date,
+    -Month,
+    -Julian_Date,
+    -Julian_Day,
+    -Time,
+    -Ship_Name,
+    -Ship_Code,
+    -Data_Type,
+    -Rpt_Line,
+    -St_Line,
+    -Ac_Line,
+    -Ac_Sta,
+    -Rpt_Sta,
+    -St_Station,
+    -Event_Num,
+    -R_TEMP,
+    -Order_Occ,
+    -Orig_Sta_ID,
+    -Data_Or,
+    -Cruz_Num,
+    -Inc_Str,
+    -Inc_End,
+    -PST_LAN,
+    -Civil_T,
+    -Wind_Dir,
+    -Wind_Spd,
+    -Sta_Code
+  )
+
+calcofi_simplified_tbl2 
 
 calcofi_simplified_tbl2 |>
-  write_csv(here("data","calcofi_simplified.csv"))
-
-calcofi_simplified_tbl2 |>
-  select(Depth_ID)
+  select(Lat_Dec, Lon_Dec)|>
+  summarise(
+    minimal_lat = min(Lat_Dec),
+    maximal_lat = max(Lat_Dec),
+    minimal_lon = min(Lon_Dec),
+    maximal_lon = max(Lon_Dec)
+  )
 ```
