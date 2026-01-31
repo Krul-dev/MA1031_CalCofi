@@ -103,7 +103,8 @@ calcofi_simplified_tbl2 <- calcofi_simplified_tbl |>
     -Wind_Dir,
     -Wind_Spd,
     -Sta_Code
-  )
+  ) |>
+  write_csv(here("data","calcofi_simplified.csv"))
 
 calcofi_simplified_tbl2 
 
