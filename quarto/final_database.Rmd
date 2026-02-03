@@ -1,0 +1,139 @@
+---
+title: "Final_database_CalCOFI"
+author: "Itzel Méndez"
+date: "2026-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+Leemos la base de datos simplificada.
+
+```{r}
+data <- read.csv('calcofi_simplified.csv')
+data
+```
+
+Se decidió eliminar las variables 
+* Barometer, Dry_T y Wet_T, pues son mediciones atmosféricas.
+* Oxy_µmol/Kg, R_Oxy_µmol/Kg y R_Sal, pues son variables corregidas o que se encuentran en otras unidades 
+* R_DYNHT: Es compleja pues es una combinación de varias variables.
+
+```{r}
+vars_delete <- c(
+  "Barometer","Oxy_µmol.Kg", "R_Oxy_µmol.Kg", "Dry_T", "Wet_T",
+  "R_Sal", "R_DYNHT", "R_Depth"
+)
+
+data <- data %>%
+  select(-all_of(vars_delete))
+data
+```
+
+## Creamos la variable categórica de zona de profundidad usando cuartiles
+
+```{r, echo=FALSE}
+quantile(data$Depthm, na.rm = TRUE)
+# Depth zones based on quartiles
+data$Depth_zone <- cut(
+  data$Depthm,
+  breaks = c(0, 20, 61, 120, Inf),
+  labels = c(
+    "Very shallow",
+    "Shallow",
+    "Intermediate",
+    "Deep"
+  ),
+  include.lowest = TRUE
+)
+
+# Eliminar la variable  original usada para crear categorías
+data$Depthm <- NULL
+```
+
+
+## Crea variable categórica Water density class usando terciles
+
+
+```{r}
+data$Water_density_class <- cut(
+  data$STheta,
+  breaks = quantile(data$STheta, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE),
+  labels = c("Light", "Intermediate", "Dense"),
+  include.lowest = TRUE
+)
+
+# Eliminar la variable  original usada para crear categorías
+data$STheta  <- NULL
+```
+
+```{r, echo=FALSE}
+colnames(data)
+```
+# Promedio de las variables.
+
+Como se tienen mediciones por botella, se decide promediar las mediciones por cast y por profundidad (considerando la metodología utilizada para la toma de mediciones).
+Las variables Cst_Cnt, Bottom_D, Distance, Lat_Dec, Lon_Dec, IntChl, Year y Quarter son únicas por cast.
+
+```{r, echo=FALSE}
+vars_to_avg <- c("ChlorA", "NO2uM", "NO3uM", "O2ml_L","O2Sat","Phaeop", "PO4uM", "Salnty","SiO3uM","T_degC")
+
+profile_cast_depth <- data %>%
+  group_by(Cst_Cnt, Depth_zone) %>%
+  summarise(
+    across(
+      all_of(vars_to_avg),
+      ~ mean(.x, na.rm = TRUE),
+      .names = "mean_{.col}"
+    ),
+    Cst_Cnt = first(Cst_Cnt),
+    Bottom_D = first(Bottom_D),
+    Distance = first(Distance),
+    Lat_Dec = first(Lat_Dec),
+    Lon_Dec = first(Lon_Dec),
+    IntChl = first(IntChl),
+    Year = first(Year),
+    Quarter = first(Quarter),
+    Depth_zone = first(Depth_zone),
+    Water_density_class = first(Water_density_class),
+    .groups = "drop"
+  )
+```
+
+```{r}
+profile_cast_depth
+```
+
+Después de promediar se obtiene el porcentaje de datos faltantes.
+
+```{r, echo=FALSE}
+missing_summary <- data.frame(
+  variable = names(profile_cast_depth),
+  pct_missing = round(
+    sapply(profile_cast_depth, function(x) mean(is.na(x)) * 100),
+    2
+  )
+)
+
+missing_summary <- missing_summary[order(-missing_summary$pct_missing), ]
+missing_summary
+```
+La base de datos final se obtiene con los datos completos.
+```{r}
+final_dataset <- profile_cast_depth[complete.cases(profile_cast_depth), ]
+final_dataset
+```
+```{r}
+write.csv(final_dataset, "datos_calcofi.csv", row.names = FALSE)
+```
+
+```{r}
+prueba <- read.csv("datos_calcofi.csv")
+prueba
+```
